@@ -1,4 +1,48 @@
-// Form Data Types
+// Platform literal type
+export type Platform = 'twitter' | 'facebook' | 'instagram' | 'youtube' | 'tiktok' | 'linkedin';
+
+// Post-level metrics from platform APIs
+export interface PostMetrics {
+  id: string;
+  text: string;
+  publishedAt: string;
+  likes: number;
+  comments: number;
+  shares: number;
+  views?: number;
+  url: string;
+}
+
+// Full platform metrics returned by API services (twitter.ts, youtube.ts, etc.)
+export interface PlatformMetrics {
+  platform: string;
+  handle: string;
+  profileUrl: string;
+  followerCount: number;
+  followingCount: number;
+  totalPosts: number;
+  recentPosts: PostMetrics[];
+  avgEngagementPerPost: number;
+  engagementRate: number;
+  postsPerWeek: number;
+  dataSource: 'api-verified' | 'search-derived';
+  scrapedAt: string;
+  rawData?: any;
+}
+
+// Competitor data from Gemini search
+export interface CompetitorData {
+  name: string;
+  platforms: Array<{
+    platform: string;
+    followerCount: number;
+    handle?: string;
+  }>;
+  totalFollowers: number;
+  dataSource: 'search-derived';
+}
+
+// Form input from InputForm component
 export interface AuditFormData {
   orgName: string;
   website: string;
@@ -11,23 +55,12 @@ export interface AuditFormData {
   competitors: string[];
 }
 
-// Platform Metrics Types
-export interface PlatformMetrics {
-  platform: string;
-  followers: number;
-  engagementRate: number;
-  url: string;
-  postFrequency: string;
-  audienceGrowth: string;
-}
-
-// SWOT Item Type
+// SWOT types
 export interface SwotItem {
   text: string;
-  source: 'VERIFIED' | 'CALCULATED' | 'BENCHMARK' | 'OBSERVED';
+  source: string;
 }
 
-// SWOT Analysis Type
 export interface SwotAnalysis {
   strengths: SwotItem[];
   weaknesses: SwotItem[];
@@ -35,41 +68,35 @@ export interface SwotAnalysis {
   threats: SwotItem[];
 }
 
-// Metrics Card Type
-export interface MetricsCard {
-  label: string;
-  value: string | number;
-  source: string;
-  icon?: React.ReactNode;
-}
-
-// Competitor Type
-export interface Competitor {
-  name: string;
-  followers: number;
-}
-
-// Full Audit Result Type
+// Complete audit result stored in Supabase
 export interface AuditResult {
-  id: string;
-  organizationName: string;
-  industry: string;
-  executiveSummary: string;
-  metrics: MetricsCard[];
-  platforms: PlatformMetrics[];
-  competitors: Competitor[];
+  id?: string;
+  input: AuditFormData;
+  platformMetrics: PlatformMetrics[];
+  competitorData: CompetitorData[];
   swot: SwotAnalysis;
+  executiveSummary: string;
   recommendations: string[];
-  sources: string[];
-  createdAt?: string;
-  updatedAt?: string;
+  generatedAt: string;
 }
 
-// Audit Record Type (for history)
-export interface AuditRecord {
+// Supabase database record
+export interface SavedAudit {
   id: string;
-  organizationName: string;
+  organization_name: string;
   industry: string;
-  createdAt: string;
-  platformCount: number;
+  audit_data: AuditResult;
+  created_at: string;
+  updated_at: string;
+  created_by?: string;
 }
+
+// Majority Strategies brand colors
+export const MS_COLORS = {
+  navy: '#00476C',
+  oceanBlue: '#217CA1',
+  gray: '#5A5B5D',
+  gold: '#A38D31',
+  lightGray: '#A4A7A9',
+  skyBlue: '#D4E8F0',
+} as const;

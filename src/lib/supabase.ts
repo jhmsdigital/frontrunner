@@ -24,7 +24,7 @@ export async function saveAudit(result: AuditResult): Promise<string> {
     .from('audits')
     .insert([
       {
-        organization_name: result.input.organizationName,
+        organization_name: result.input.orgName,
         industry: result.input.industry,
         audit_data: result,
         created_at: new Date().toISOString(),

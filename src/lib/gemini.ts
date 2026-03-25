@@ -1,10 +1,8 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type {
   CompetitorData,
-  Platform,
   PlatformMetrics,
   SwotAnalysis,
-  SwotItem,
 } from '@/types';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
@@ -16,7 +14,7 @@ const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
  */
 export async function fetchCompetitorData(
   competitorNames: string[],
-  platforms: Platform[],
+  platforms: string[],
   industry: string
 ): Promise<CompetitorData[]> {
   if (competitorNames.length === 0) {
@@ -226,19 +224,19 @@ RECOMMENDATIONS: [numbered list here]`;
         swot = {
           strengths: (swotData.strengths || []).map((item: any) => ({
             text: item.text,
-            dataSource: item.dataSource || 'observation',
+            source: item.dataSource || item.source || 'OBSERVED',
           })),
           weaknesses: (swotData.weaknesses || []).map((item: any) => ({
             text: item.text,
-            dataSource: item.dataSource || 'observation',
+            source: item.dataSource || item.source || 'OBSERVED',
           })),
           opportunities: (swotData.opportunities || []).map((item: any) => ({
             text: item.text,
-            dataSource: item.dataSource || 'observation',
+            source: item.dataSource || item.source || 'OBSERVED',
           })),
           threats: (swotData.threats || []).map((item: any) => ({
             text: item.text,
-            dataSource: item.dataSource || 'observation',
+            source: item.dataSource || item.source || 'OBSERVED',
           })),
         };
       } catch (e) {

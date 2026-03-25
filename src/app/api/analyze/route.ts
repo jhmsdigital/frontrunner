@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { CompetitorData, PlatformMetrics } from '@/types';
+import type { PlatformMetrics, CompetitorData } from '@/types';
 import { generateAnalysis } from '@/lib/gemini';
 import { getAudit, updateAudit } from '@/lib/supabase';
 
@@ -62,8 +62,8 @@ export async function POST(request: NextRequest) {
       swot,
       executiveSummary,
       recommendations,
-      updatedAt: new Date().toISOString(),
-    });
+      generatedAt: new Date().toISOString(),
+    } as any);
 
     // Return updated analysis
     return NextResponse.json({

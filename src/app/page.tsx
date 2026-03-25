@@ -66,7 +66,7 @@ export default function Home() {
     }, 2000);
 
     try {
-      const response = await fetch('/api/analyze', {
+      const response = await fetch('/api/audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),

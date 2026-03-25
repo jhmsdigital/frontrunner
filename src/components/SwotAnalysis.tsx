@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/Badge';
 
 interface SwotItem {
   text: string;
-  source: 'VERIFIED' | 'CALCULATED' | 'BENCHMARK' | 'OBSERVED';
+  source: string;
 }
 
 interface SwotAnalysisProps {
@@ -17,11 +17,18 @@ interface SwotAnalysisProps {
   isEditing?: boolean;
 }
 
-const sourceColors = {
-  VERIFIED: 'bg-green-100 text-green-800',
-  CALCULATED: 'bg-blue-100 text-blue-800',
-  BENCHMARK: 'bg-purple-100 text-purple-800',
-  OBSERVED: 'bg-gray-100 text-gray-800',
+const getSourceColor = (source: string): string => {
+  const colors: Record<string, string> = {
+    VERIFIED: 'bg-green-100 text-green-800',
+    'api-verified': 'bg-green-100 text-green-800',
+    CALCULATED: 'bg-blue-100 text-blue-800',
+    calculated: 'bg-blue-100 text-blue-800',
+    BENCHMARK: 'bg-purple-100 text-purple-800',
+    benchmark: 'bg-purple-100 text-purple-800',
+    OBSERVED: 'bg-gray-100 text-gray-800',
+    observation: 'bg-gray-100 text-gray-800',
+  };
+  return colors[source] || 'bg-gray-100 text-gray-800';
 };
 
 const quadrants = [
@@ -99,7 +106,7 @@ export default function SwotAnalysis({
                   <div key={idx} className="space-y-1">
                     <p className="text-sm font-medium text-gray-900">{item.text}</p>
                     <div className="flex items-center gap-2">
-                      <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${sourceColors[item.source]}`}>
+                      <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${getSourceColor(item.source)}`}>
                         {item.source}
                       </span>
                     </div>

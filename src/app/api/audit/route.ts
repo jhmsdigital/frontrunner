@@ -1,69 +1,69 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { AuditFormData, AuditResult, PlatformMetrics } from '@/types';
-import { fetchMultiplePlatformMetrics } from '@/lib/platforms';
+import type { AuditFormData, PlatformMetrics } from '@/types';
+import { fetchPlatformMetrics } from '@/lib/platforms';
 import { fetchCompetitorData, generateAnalysis } from '@/lib/gemini';
 import { saveAudit } from '@/lib/supabase';
 
-/**
- * POST /api/audit
- * Runs a complete social media audit:
- * 1. Fetches platform metrics from APIs
- * 2. Fetches competitor data via Gemini
- * 3. Generates analysis (SWOT, executive summary, recommendations)
- * 4. Saves to Supabase
- * 5. Returns complete AuditResult
- */
+// Map display names to platform keys
+const PLATFORM_KEY_MAP: Record<string, string> = {
+  'Facebook': 'facebook',
+  'Twitter/X': 'twitter',
+  'Instagram': 'instagram',
+  'TikTok': 'tiktok',
+  'LinkedIn': 'linkedin',
+  'YouTube': 'youtube',
+};
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const formData: AuditFormData = body;
+    const formData: AuditFormData = await request.json();
 
-    // Validate required fields
     if (
-      !formData.organizationName ||
+      !formData.orgName ||
       !formData.industry ||
       !formData.platforms ||
       formData.platforms.length === 0
     ) {
       return NextResponse.json(
-        {
-          error: 'Missing required fields: organizationName, industry, and platforms',
-        },
+        { error: 'Missing required fields: orgName, industry, and platforms' },
         { status: 400 }
       );
     }
 
     // Step 1: Fetch platform metrics in parallel
-    const platformHandles: Array<[typeof formData.platforms[0], string]> = [];
-    for (const platform of formData.platforms) {
-      const handle = formData.socialHandles?.[platform];
-      if (handle) {
-        platformHandles.push([platform, handle]);
-      }
-    }
+    const metricsPromises = formData.platforms
+      .filter(p => p.url)
+      .map(p => {
+        const platformKey = PLATFORM_KEY_MAP[p.name] || p.name.toLowerCase();
+        return fetchPlatformMetrics(platformKey as any, p.url);
+      });
 
-    const metricsResults = await fetchMultiplePlatformMetrics(platformHandles);
-    const platformMetrics: PlatformMetrics[] = metricsResults
-      .filter((m): m is PlatformMetrics => m !== null);
+    const metricsResults = await Promise.all(metricsPromises);
+    const platformMetrics: PlatformMetrics[] = metricsResults.filter(
+      (m): m is PlatformMetrics => m !== null
+    );
 
-    // Step 2: Fetch competitor data
+    // Step 2: Fetch competitor data via Gemini
+    const platformNames = formData.platforms.map(p =>
+      PLATFORM_KEY_MAP[p.name] || p.name.toLowerCase()
+    );
     const competitorData = await fetchCompetitorData(
-      formData.competitors,
-      formData.platforms,
+      formData.competitors || [],
+      platformNames,
       formData.industry
     );
 
     // Step 3: Generate analysis
     const { executiveSummary, swot, recommendations } = await generateAnalysis(
-      formData.organizationName,
+      formData.orgName,
       formData.industry,
       formData.campaignGoals,
       platformMetrics,
       competitorData
     );
 
-    // Step 4: Create audit result object
-    const auditResult: AuditResult = {
+    // Step 4: Build result
+    const auditResult = {
       input: formData,
       platformMetrics,
       competitorData,
@@ -74,16 +74,62 @@ export async function POST(request: NextRequest) {
     };
 
     // Step 5: Save to Supabase
-    const auditId = await saveAudit(auditResult);
-    auditResult.id = auditId;
+    let auditId: string | undefined;
+    try {
+      auditId = await saveAudit(auditResult as any);
+    } catch (e) {
+      console.error('Failed to save audit to Supabase:', e);
+      // Continue without saving - don't fail the whole request
+    }
 
-    return NextResponse.json(auditResult, { status: 201 });
+    // Step 6: Return response in the shape the frontend expects
+    const totalFollowers = platformMetrics.reduce((sum, m) => sum + m.followerCount, 0);
+    const avgEngagement = platformMetrics.length > 0
+      ? platformMetrics.reduce((sum, m) => sum + m.engagementRate, 0) / platformMetrics.length
+      : 0;
+
+    return NextResponse.json({
+      id: auditId || crypto.randomUUID(),
+      organizationName: formData.orgName,
+      industry: formData.industry,
+      executiveSummary,
+      metrics: [
+        {
+          label: 'Total Followers',
+          value: totalFollowers.toLocaleString(),
+          source: platformMetrics.some(m => m.dataSource === 'api-verified') ? 'API Verified' : 'Estimated',
+        },
+        {
+          label: 'Avg. Engagement Rate',
+          value: `${avgEngagement.toFixed(2)}%`,
+          source: 'Calculated',
+        },
+        {
+          label: 'Active Platforms',
+          value: platformMetrics.length,
+          source: 'Verified',
+        },
+      ],
+      platforms: platformMetrics.map(m => ({
+        platform: m.platform,
+        followers: m.followerCount,
+        engagementRate: m.engagementRate,
+        url: m.profileUrl,
+        postFrequency: `${m.postsPerWeek.toFixed(1)} posts/week`,
+        audienceGrowth: 'N/A',
+      })),
+      competitors: competitorData.map(c => ({
+        name: c.name,
+        followers: c.totalFollowers,
+      })),
+      swot,
+      recommendations,
+      sources: platformMetrics.map(m => `${m.platform}: ${m.dataSource}`),
+    }, { status: 201 });
   } catch (error) {
     console.error('Error in audit POST:', error);
     return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : 'Failed to run audit',
-      },
+      { error: error instanceof Error ? error.message : 'Failed to run audit' },
       { status: 500 }
     );
   }
