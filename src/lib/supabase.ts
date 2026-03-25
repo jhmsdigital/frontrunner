@@ -1,17 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 import type { AuditResult, SavedAudit } from '@/types';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// For server-side API routes, prefer non-NEXT_PUBLIC_ env vars (read at RUNTIME)
+// NEXT_PUBLIC_ vars get inlined at BUILD TIME by Next.js, which can cause stale values
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-// Client-side client (for browser operations)
+// Supabase client used by both client-side and server-side code
 export const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
 
-// Server-side client (for API routes)
+// Server-side client (for API routes) — identical for now
 export const supabaseServer = createClient(supabaseUrl, supabaseAnonKey);
 
 /**
@@ -47,9 +49,6 @@ async function withRetry<T>(
  * @returns The ID of the saved audit
  */
 export async function saveAudit(result: AuditResult): Promise<string> {
-  console.log('[saveAudit] Starting save for org:', result.input?.orgName);
-  console.log('[saveAudit] Supabase URL configured:', supabaseUrl ? supabaseUrl.substring(0, 30) + '...' : 'MISSING');
-
   return withRetry(async () => {
     const insertPayload = {
       organization_name: result.input.orgName,
@@ -59,16 +58,10 @@ export async function saveAudit(result: AuditResult): Promise<string> {
       updated_at: new Date().toISOString(),
     };
 
-    console.log('[saveAudit] Inserting audit, payload org:', insertPayload.organization_name);
-
-    const { data, error, status, statusText } = await supabaseClient
+    const { data, error, status } = await supabaseClient
       .from('audits')
       .insert([insertPayload])
       .select('id');
-
-    console.log('[saveAudit] Supabase response - status:', status, statusText);
-    console.log('[saveAudit] Supabase response - error:', error ? JSON.stringify(error) : 'none');
-    console.log('[saveAudit] Supabase response - data:', data ? JSON.stringify(data) : 'null');
 
     if (error) {
       throw new Error(`Failed to save audit: ${error.message} (code: ${error.code}, status: ${status})`);
@@ -78,7 +71,6 @@ export async function saveAudit(result: AuditResult): Promise<string> {
       throw new Error(`Failed to save audit: No data returned (status: ${status})`);
     }
 
-    console.log('[saveAudit] Successfully saved audit with ID:', data[0].id);
     return data[0].id;
   }, 3, 'saveAudit');
 }

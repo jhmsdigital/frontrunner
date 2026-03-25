@@ -48,6 +48,8 @@ Return the data as a JSON array with this structure:
 
 Be as accurate as possible with current follower counts. If a competitor doesn't have a presence on a platform, omit that platform from their list.`;
 
+    console.log('[competitors] Fetching data for:', competitorList, 'on platforms:', platformList);
+
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
@@ -60,15 +62,17 @@ Be as accurate as possible with current follower counts. If a competitor doesn't
     const responseText =
       result.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
-    // Extract JSON from response
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.warn('No JSON found in Gemini competitor response');
+    console.log('[competitors] Gemini response length:', responseText.length);
+
+    // Extract JSON from response — use robust brace-matching
+    const jsonStr = extractJsonObject(responseText);
+    if (!jsonStr) {
+      console.warn('[competitors] No JSON found in Gemini response. First 300 chars:', responseText.substring(0, 300));
       return [];
     }
 
-    const parsed = JSON.parse(jsonMatch[0]);
-    const competitors: CompetitorData[] = parsed.competitors.map(
+    const parsed = JSON.parse(jsonStr);
+    const competitors: CompetitorData[] = (parsed.competitors || []).map(
       (comp: any) => ({
         name: comp.name,
         platforms: comp.platforms || [],
@@ -80,6 +84,7 @@ Be as accurate as possible with current follower counts. If a competitor doesn't
       })
     );
 
+    console.log('[competitors] Parsed', competitors.length, 'competitors:', competitors.map(c => `${c.name}: ${c.totalFollowers} followers`));
     return competitors;
   } catch (error) {
     console.error('Error fetching competitor data from Gemini:', error);
