@@ -2,6 +2,8 @@
 
 import React, { useRef } from 'react';
 import { FileDown, Plus, Save } from 'lucide-react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import SwotAnalysis from './SwotAnalysis';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -60,18 +62,214 @@ export default function Dashboard({
   const dashboardRef = useRef<HTMLDivElement>(null);
 
   const handlePdfExport = () => {
-    // Using html2pdf or print fallback
-    if (typeof window !== 'undefined') {
-      const content = dashboardRef.current;
-      if (content) {
-        const printWindow = window.open('', '', 'width=800,height=600');
-        if (printWindow) {
-          printWindow.document.write(content.innerHTML);
-          printWindow.document.close();
-          printWindow.print();
-        }
+    if (typeof window === 'undefined') return;
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    let yPosition = 15;
+    const margin = 15;
+    const contentWidth = pageWidth - 2 * margin;
+
+    // Brand Colors
+    const colors = {
+      navy: [0, 71, 108] as [number, number, number],
+      oceanBlue: [33, 124, 161] as [number, number, number],
+      gold: [163, 141, 49] as [number, number, number],
+      gray: [90, 91, 93] as [number, number, number],
+      lightGray: [242, 242, 242] as [number, number, number],
+    };
+
+    // Helper: Add new page if needed
+    const checkPageBreak = (spaceNeeded: number) => {
+      if (yPosition + spaceNeeded > pageHeight - 20) {
+        doc.addPage();
+        yPosition = 15;
       }
-    }
+    };
+
+    // Header
+    doc.setFillColor(...colors.navy);
+    doc.rect(0, 0, pageWidth, 30, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.setFont(undefined, 'bold');
+    doc.text('FRONTRUNNER by Majority Strategies', margin, 12);
+    doc.setTextColor(...colors.gray);
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'normal');
+    doc.text(`${organizationName} | ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, margin, 20);
+
+    yPosition = 40;
+
+    // Executive Summary Section
+    checkPageBreak(50);
+    doc.setFillColor(...colors.navy);
+    doc.rect(0, yPosition - 5, pageWidth, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(13);
+    doc.setFont(undefined, 'bold');
+    doc.text('Executive Summary', margin, yPosition + 1);
+    yPosition += 15;
+
+    doc.setTextColor(...colors.gray);
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    const summaryLines = doc.splitTextToSize(executiveSummary, contentWidth);
+    doc.text(summaryLines, margin, yPosition);
+    yPosition += summaryLines.length * 5 + 5;
+
+    // Key Metrics Section
+    checkPageBreak(40);
+    doc.setTextColor(...colors.navy);
+    doc.setFontSize(13);
+    doc.setFont(undefined, 'bold');
+    doc.text('Key Metrics', margin, yPosition);
+    yPosition += 10;
+
+    const metricsTableData = metrics.map(m => [
+      m.label,
+      String(m.value),
+      m.source,
+    ]);
+
+    (doc as any).autoTable({
+      head: [['Metric', 'Value', 'Source']],
+      body: metricsTableData,
+      startY: yPosition,
+      margin: { left: margin, right: margin },
+      headStyles: {
+        fillColor: colors.oceanBlue,
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 10,
+      },
+      bodyStyles: {
+        textColor: colors.gray,
+        fontSize: 9,
+      },
+      alternateRowStyles: {
+        fillColor: colors.lightGray,
+      },
+    });
+
+    yPosition = (doc as any).lastAutoTable.finalY + 10;
+
+    // Digital Footprint Section
+    checkPageBreak(50);
+    doc.setTextColor(...colors.navy);
+    doc.setFontSize(13);
+    doc.setFont(undefined, 'bold');
+    doc.text('Digital Footprint', margin, yPosition);
+    yPosition += 10;
+
+    const platformsTableData = platforms.map(p => [
+      p.platform,
+      `${(p.followers / 1000).toFixed(1)}K`,
+      `${p.engagementRate.toFixed(2)}%`,
+      p.postFrequency,
+    ]);
+
+    (doc as any).autoTable({
+      head: [['Platform', 'Followers', 'Engagement Rate', 'Post Frequency']],
+      body: platformsTableData,
+      startY: yPosition,
+      margin: { left: margin, right: margin },
+      headStyles: {
+        fillColor: colors.oceanBlue,
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 10,
+      },
+      bodyStyles: {
+        textColor: colors.gray,
+        fontSize: 9,
+      },
+      alternateRowStyles: {
+        fillColor: colors.lightGray,
+      },
+    });
+
+    yPosition = (doc as any).lastAutoTable.finalY + 10;
+
+    // SWOT Analysis Section
+    checkPageBreak(80);
+    doc.setTextColor(...colors.navy);
+    doc.setFontSize(13);
+    doc.setFont(undefined, 'bold');
+    doc.text('SWOT Analysis', margin, yPosition);
+    yPosition += 10;
+
+    const swotData = [
+      ['Strengths', 'Weaknesses'],
+      [
+        swot.strengths.map(s => `• ${s.text}`).join('\n'),
+        swot.weaknesses.map(w => `• ${w.text}`).join('\n'),
+      ],
+      ['Opportunities', 'Threats'],
+      [
+        swot.opportunities.map(o => `• ${o.text}`).join('\n'),
+        swot.threats.map(t => `• ${t.text}`).join('\n'),
+      ],
+    ];
+
+    (doc as any).autoTable({
+      body: swotData,
+      startY: yPosition,
+      margin: { left: margin, right: margin },
+      columnStyles: {
+        0: { cellWidth: contentWidth / 2 - 2 },
+        1: { cellWidth: contentWidth / 2 - 2 },
+      },
+      bodyStyles: {
+        textColor: colors.gray,
+        fontSize: 8,
+        valign: 'top',
+      },
+      didDrawCell: (data: any) => {
+        const cell = data.cell;
+        if (data.row.index % 2 === 0) {
+          // Header rows
+          doc.setFillColor(...colors.gold);
+          doc.rect(cell.x, cell.y, cell.width, cell.height, 'F');
+          doc.setTextColor(255, 255, 255);
+          doc.setFont(undefined, 'bold');
+        }
+      },
+    });
+
+    yPosition = (doc as any).lastAutoTable.finalY + 10;
+
+    // Recommendations Section
+    checkPageBreak(60);
+    doc.setTextColor(...colors.navy);
+    doc.setFontSize(13);
+    doc.setFont(undefined, 'bold');
+    doc.text('Recommendations', margin, yPosition);
+    yPosition += 10;
+
+    doc.setTextColor(...colors.gray);
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'normal');
+    recommendations.forEach(rec => {
+      checkPageBreak(8);
+      doc.text('•', margin, yPosition);
+      const recLines = doc.splitTextToSize(rec, contentWidth - 5);
+      doc.text(recLines, margin + 5, yPosition);
+      yPosition += recLines.length * 4 + 2;
+    });
+
+    // Footer
+    doc.setTextColor(255, 255, 255);
+    doc.setFillColor(...colors.navy);
+    doc.rect(0, pageHeight - 15, pageWidth, 15, 'F');
+    doc.setFontSize(8);
+    doc.setFont(undefined, 'normal');
+    const footerText = `Generated by Frontrunner | Majority Strategies | ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`;
+    doc.text(footerText, pageWidth / 2, pageHeight - 5, { align: 'center' });
+
+    // Download
+    doc.save(`${organizationName}_Frontrunner_Audit.pdf`);
   };
 
   const comparisonData = [

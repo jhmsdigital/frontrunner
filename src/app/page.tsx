@@ -53,6 +53,7 @@ export default function Home() {
   const [progressMessage, setProgressMessage] = useState('');
   const [auditResult, setAuditResult] = useState<AuditResult | null>(null);
   const [selectedAuditId, setSelectedAuditId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'new-audit' | 'generated-audits'>('new-audit');
 
   const handleFormSubmit = async (formData: any) => {
     setPageState('loading');
@@ -102,62 +103,99 @@ export default function Home() {
     setPageState('home');
     setAuditResult(null);
     setSelectedAuditId(null);
+    setActiveTab('new-audit');
   };
 
   // Home View
   if (pageState === 'home') {
     return (
       <div className="space-y-12">
-        {/* Hero Section */}
-        <div className="text-center space-y-6 pt-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-ms-navy leading-tight max-w-3xl mx-auto">
-            Don't just join the conversation.<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-ms-oceanBlue to-ms-gold">
-              Lead it.
-            </span>
-          </h1>
-          <p className="text-lg text-ms-gray max-w-2xl mx-auto">
-            Analyze your brand's social media presence, understand your competitors, and discover actionable insights to amplify your voice in the digital space.
-          </p>
-        </div>
-
-        {/* Input Form */}
-        <div className="max-w-4xl mx-auto w-full">
-          <InputForm onSubmit={handleFormSubmit} />
-        </div>
-
-        {/* Feature Cards */}
-        <div className="grid gap-6 md:grid-cols-3 pt-8">
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-ms-oceanBlue text-white">
-              <BarChart3 className="h-6 w-6" />
-            </div>
-            <h3 className="mb-2 font-bold text-ms-navy">Comprehensive Analysis</h3>
-            <p className="text-sm text-ms-gray">
-              Get detailed insights into your social media performance across all platforms with real-time metrics.
-            </p>
-          </div>
-
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-ms-gold text-white">
-              <Users className="h-6 w-6" />
-            </div>
-            <h3 className="mb-2 font-bold text-ms-navy">Competitor Benchmarking</h3>
-            <p className="text-sm text-ms-gray">
-              Compare your audience size, engagement rates, and growth against your competitors.
-            </p>
-          </div>
-
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-ms-skyBlue text-ms-navy">
-              <Target className="h-6 w-6" />
-            </div>
-            <h3 className="mb-2 font-bold text-ms-navy">Actionable Recommendations</h3>
-            <p className="text-sm text-ms-gray">
-              Receive strategic recommendations to improve your social media presence and reach your goals.
-            </p>
+        {/* Tab Bar */}
+        <div className="border-b border-gray-200">
+          <div className="flex gap-8">
+            <button
+              onClick={() => setActiveTab('new-audit')}
+              className={`pb-4 font-medium transition-colors ${
+                activeTab === 'new-audit'
+                  ? 'text-ms-navy border-b-2 border-ms-navy'
+                  : 'text-ms-gray hover:text-ms-navy'
+              }`}
+            >
+              New Audit
+            </button>
+            <button
+              onClick={() => setActiveTab('generated-audits')}
+              className={`pb-4 font-medium transition-colors ${
+                activeTab === 'generated-audits'
+                  ? 'text-ms-navy border-b-2 border-ms-navy'
+                  : 'text-ms-gray hover:text-ms-navy'
+              }`}
+            >
+              Generated Audits
+            </button>
           </div>
         </div>
+
+        {/* New Audit Tab Content */}
+        {activeTab === 'new-audit' && (
+          <div className="space-y-12">
+            {/* Hero Section */}
+            <div className="text-center space-y-6 pt-8">
+              <h1 className="text-4xl md:text-5xl font-bold text-ms-navy leading-tight max-w-3xl mx-auto">
+                Don't just join the conversation.<br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-ms-oceanBlue to-ms-gold">
+                  Lead it.
+                </span>
+              </h1>
+              <p className="text-lg text-ms-gray max-w-2xl mx-auto">
+                Analyze your brand's social media presence, understand your competitors, and discover actionable insights to amplify your voice in the digital space.
+              </p>
+            </div>
+
+            {/* Input Form */}
+            <div className="max-w-4xl mx-auto w-full">
+              <InputForm onSubmit={handleFormSubmit} />
+            </div>
+
+            {/* Feature Cards */}
+            <div className="grid gap-6 md:grid-cols-3 pt-8">
+              <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-ms-oceanBlue text-white">
+                  <BarChart3 className="h-6 w-6" />
+                </div>
+                <h3 className="mb-2 font-bold text-ms-navy">Comprehensive Analysis</h3>
+                <p className="text-sm text-ms-gray">
+                  Get detailed insights into your social media performance across all platforms with real-time metrics.
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-ms-gold text-white">
+                  <Users className="h-6 w-6" />
+                </div>
+                <h3 className="mb-2 font-bold text-ms-navy">Competitor Benchmarking</h3>
+                <p className="text-sm text-ms-gray">
+                  Compare your audience size, engagement rates, and growth against your competitors.
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-ms-skyBlue text-ms-navy">
+                  <Target className="h-6 w-6" />
+                </div>
+                <h3 className="mb-2 font-bold text-ms-navy">Actionable Recommendations</h3>
+                <p className="text-sm text-ms-gray">
+                  Receive strategic recommendations to improve your social media presence and reach your goals.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Generated Audits Tab Content */}
+        {activeTab === 'generated-audits' && (
+          <AuditHistory onSelectAudit={handleSelectAudit} />
+        )}
       </div>
     );
   }
@@ -215,21 +253,6 @@ export default function Home() {
         sources={auditResult.sources}
         onNewAudit={handleNewAudit}
       />
-    );
-  }
-
-  // History View
-  if (pageState === 'history') {
-    return (
-      <div>
-        <button
-          onClick={() => setPageState('home')}
-          className="mb-6 text-ms-oceanBlue hover:underline font-medium flex items-center gap-2"
-        >
-          ← Back to Home
-        </button>
-        <AuditHistory onSelectAudit={handleSelectAudit} />
-      </div>
     );
   }
 

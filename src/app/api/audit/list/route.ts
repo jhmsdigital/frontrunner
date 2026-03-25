@@ -8,8 +8,18 @@ import { listAudits } from '@/lib/supabase';
  */
 export async function GET() {
   try {
-    const audits = await listAudits();
-    return NextResponse.json(audits);
+    const rawAudits = await listAudits();
+
+    // Transform Supabase data to match AuditHistory component expectations
+    const transformedAudits = rawAudits.map((audit: any) => ({
+      id: audit.id,
+      organizationName: audit.organization_name,
+      industry: audit.industry,
+      createdAt: audit.created_at,
+      platformCount: audit.audit_data?.input?.platforms?.length || 0,
+    }));
+
+    return NextResponse.json({ audits: transformedAudits });
   } catch (error) {
     console.error('Error in audit list GET:', error);
     return NextResponse.json(
