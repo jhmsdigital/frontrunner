@@ -79,45 +79,87 @@ export default function Dashboard({
     const margin = 15;
     const contentWidth = pageWidth - 2 * margin;
 
-    // Brand Colors
+    // MS Brand Colors
     const colors = {
       navy: [0, 71, 108] as [number, number, number],
       oceanBlue: [33, 124, 161] as [number, number, number],
       gold: [163, 141, 49] as [number, number, number],
+      yellow: [218, 197, 84] as [number, number, number],
       gray: [90, 91, 93] as [number, number, number],
       lightGray: [242, 242, 242] as [number, number, number],
+      skyBlue: [140, 198, 231] as [number, number, number],
     };
 
     // Helper: Add new page if needed
     const checkPageBreak = (spaceNeeded: number) => {
-      if (yPosition + spaceNeeded > pageHeight - 20) {
+      if (yPosition + spaceNeeded > pageHeight - 25) {
         doc.addPage();
+        // Repeat thin header bar on each page
+        doc.setFillColor(...colors.navy);
+        doc.rect(0, 0, pageWidth, 6, 'F');
+        doc.setFillColor(...colors.gold);
+        doc.rect(0, 6, pageWidth, 1.5, 'F');
         yPosition = 15;
       }
     };
 
-    // Header
+    // Load MS logo for PDF
+    let msLogoData: string | null = null;
+    try {
+      const logoResponse = await fetch('/MS_logo_white.png');
+      const logoBlob = await logoResponse.blob();
+      msLogoData = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(logoBlob);
+      });
+    } catch (e) {
+      console.warn('Could not load MS logo for PDF:', e);
+    }
+
+    // === COVER HEADER ===
+    // Navy header block
     doc.setFillColor(...colors.navy);
-    doc.rect(0, 0, pageWidth, 30, 'F');
+    doc.rect(0, 0, pageWidth, 42, 'F');
+    // Gold accent stripe
+    doc.setFillColor(...colors.gold);
+    doc.rect(0, 42, pageWidth, 2, 'F');
+
+    // MS Logo (white version on navy background)
+    if (msLogoData) {
+      doc.addImage(msLogoData, 'PNG', margin, 5, 40, 13);
+    }
+
+    // Frontrunner title
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(18);
+    doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
-    doc.text('FRONTRUNNER by Majority Strategies', margin, 12);
-    doc.setTextColor(...colors.gray);
+    doc.text('FRONTRUNNER', pageWidth - margin, 14, { align: 'right' });
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...colors.skyBlue);
+    doc.text('SOCIAL MEDIA AUDIT TOOL', pageWidth - margin, 20, { align: 'right' });
+
+    // Organization name and date in header
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(organizationName, margin, 32);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.text(`${organizationName} | ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, margin, 20);
+    doc.setTextColor(200, 220, 230);
+    doc.text(`${industry} | ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, margin, 38);
 
-    yPosition = 40;
+    yPosition = 52;
 
     // Executive Summary Section
     checkPageBreak(50);
-    doc.setFillColor(...colors.navy);
-    doc.rect(0, yPosition - 5, pageWidth, 8, 'F');
+    doc.setFillColor(...colors.oceanBlue);
+    doc.rect(margin, yPosition - 5, contentWidth, 8, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(13);
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('Executive Summary', margin, yPosition + 1);
+    doc.text('EXECUTIVE SUMMARY', margin + 4, yPosition + 1);
     yPosition += 15;
 
     doc.setTextColor(...colors.gray);
@@ -129,11 +171,13 @@ export default function Dashboard({
 
     // Key Metrics Section
     checkPageBreak(40);
-    doc.setTextColor(...colors.navy);
-    doc.setFontSize(13);
+    doc.setFillColor(...colors.oceanBlue);
+    doc.rect(margin, yPosition - 5, contentWidth, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('Key Metrics', margin, yPosition);
-    yPosition += 10;
+    doc.text('KEY METRICS', margin + 4, yPosition + 1);
+    yPosition += 15;
 
     const metricsTableData = metrics.map(m => [
       m.label,
@@ -165,11 +209,13 @@ export default function Dashboard({
 
     // Digital Footprint Section
     checkPageBreak(50);
-    doc.setTextColor(...colors.navy);
-    doc.setFontSize(13);
+    doc.setFillColor(...colors.oceanBlue);
+    doc.rect(margin, yPosition - 5, contentWidth, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('Digital Footprint', margin, yPosition);
-    yPosition += 10;
+    doc.text('DIGITAL FOOTPRINT', margin + 4, yPosition + 1);
+    yPosition += 15;
 
     const platformsTableData = platforms.map(p => [
       p.platform,
@@ -202,11 +248,13 @@ export default function Dashboard({
 
     // SWOT Analysis Section
     checkPageBreak(80);
-    doc.setTextColor(...colors.navy);
-    doc.setFontSize(13);
+    doc.setFillColor(...colors.oceanBlue);
+    doc.rect(margin, yPosition - 5, contentWidth, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('SWOT Analysis', margin, yPosition);
-    yPosition += 10;
+    doc.text('SWOT ANALYSIS', margin + 4, yPosition + 1);
+    yPosition += 15;
 
     const swotData = [
       ['Strengths', 'Weaknesses'],
@@ -250,11 +298,13 @@ export default function Dashboard({
 
     // Recommendations Section
     checkPageBreak(60);
-    doc.setTextColor(...colors.navy);
-    doc.setFontSize(13);
+    doc.setFillColor(...colors.oceanBlue);
+    doc.rect(margin, yPosition - 5, contentWidth, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('Recommendations', margin, yPosition);
-    yPosition += 10;
+    doc.text('RECOMMENDATIONS', margin + 4, yPosition + 1);
+    yPosition += 15;
 
     doc.setTextColor(...colors.gray);
     doc.setFontSize(9);
@@ -268,13 +318,17 @@ export default function Dashboard({
     });
 
     // Footer
-    doc.setTextColor(255, 255, 255);
+    doc.setFillColor(...colors.gold);
+    doc.rect(0, pageHeight - 18, pageWidth, 1.5, 'F');
     doc.setFillColor(...colors.navy);
-    doc.rect(0, pageHeight - 15, pageWidth, 15, 'F');
-    doc.setFontSize(8);
+    doc.rect(0, pageHeight - 16.5, pageWidth, 16.5, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
-    const footerText = `Generated by Frontrunner | Majority Strategies | ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`;
-    doc.text(footerText, pageWidth / 2, pageHeight - 5, { align: 'center' });
+    doc.text('Frontrunner by Majority Strategies | MajorityStrategies.com | 904-567-2008', pageWidth / 2, pageHeight - 9, { align: 'center' });
+    doc.setTextColor(200, 220, 230);
+    doc.setFontSize(6);
+    doc.text(`Generated ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`, pageWidth / 2, pageHeight - 4, { align: 'center' });
 
     // Download
     doc.save(`${organizationName}_Frontrunner_Audit.pdf`);
@@ -510,7 +564,9 @@ export default function Dashboard({
           Let Majority Strategies help you unlock your brand's full potential
         </p>
         <a
-          href="https://majoritystategies.com"
+          href="https://majoritystrategies.com"
+          target="_blank"
+          rel="noopener noreferrer"
           className="inline-block rounded-lg bg-ms-gold px-6 py-3 font-bold text-ms-navy hover:bg-opacity-90 transition-opacity"
         >
           Contact Majority Strategies

@@ -2,10 +2,10 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Frontrunner | Social Media Audit',
+  title: 'Frontrunner | Social Media Audit by Majority Strategies',
   description: 'Social media audit tool by Majority Strategies. Analyze your brand presence, understand your competitors, and lead the conversation.',
   icons: {
-    icon: '/favicon.ico',
+    icon: '/MS_icon_rgb.png',
   },
 };
 
@@ -18,27 +18,32 @@ export default function RootLayout({
     <html lang="en">
       <body className="min-h-screen bg-gray-50">
         {/* Navigation Bar */}
-        <nav className="border-b border-gray-200 bg-white shadow-sm">
+        <nav className="bg-ms-navy shadow-lg">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between py-4">
-              {/* Logo */}
-              <div className="flex items-center space-x-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded bg-ms-navy font-bold text-white">
-                  F
-                </div>
+            <div className="flex items-center justify-between py-3">
+              {/* MS Logo + Frontrunner */}
+              <div className="flex items-center gap-5">
+                <img
+                  src="/MS_logo_white.png"
+                  alt="Majority Strategies"
+                  className="h-10 w-auto"
+                />
+                <div className="h-8 w-px bg-white/30"></div>
                 <div className="flex flex-col">
-                  <div className="font-bold text-ms-navy text-lg tracking-wide">
+                  <div className="font-extrabold text-white text-lg tracking-widest leading-tight">
                     FRONTRUNNER
                   </div>
-                  <div className="text-xs text-ms-gray font-medium">
-                    BY MAJORITY STRATEGIES
+                  <div className="text-[10px] text-ms-skyBlue font-medium tracking-wider uppercase">
+                    Social Media Audit Tool
                   </div>
                 </div>
               </div>
 
-              {/* Right side - can add nav items here if needed */}
-              <div className="hidden items-center space-x-6 md:flex">
-                {/* Navigation items would go here */}
+              {/* Right side */}
+              <div className="hidden items-center space-x-4 md:flex">
+                <span className="text-xs text-white/60 font-medium">
+                  Powered by Majority Strategies
+                </span>
               </div>
             </div>
           </div>
@@ -50,10 +55,23 @@ export default function RootLayout({
         </main>
 
         {/* Footer */}
-        <footer className="border-t border-gray-200 bg-white mt-16">
+        <footer className="bg-ms-navy mt-16">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-            <div className="text-center text-sm text-ms-gray">
-              <p>&copy; 2024 Majority Strategies. All rights reserved.</p>
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <img
+                  src="/MS_logo_white.png"
+                  alt="Majority Strategies"
+                  className="h-8 w-auto opacity-80"
+                />
+                <div className="h-6 w-px bg-white/20"></div>
+                <span className="text-sm text-white/60 font-medium">
+                  Frontrunner by Majority Strategies
+                </span>
+              </div>
+              <div className="text-center text-xs text-white/40">
+                <p>&copy; {new Date().getFullYear()} Majority Strategies. All rights reserved. | 904-567-2008 | MajorityStrategies.com</p>
+              </div>
             </div>
           </div>
         </footer>

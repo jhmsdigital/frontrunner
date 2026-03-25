@@ -109,7 +109,10 @@ export default function AuditHistory({ onSelectAudit }: AuditHistoryProps) {
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600">Created</span>
                 <span className="font-medium text-gray-900">
-                  {new Date(audit.createdAt).toLocaleDateString()}
+                  {new Date(audit.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}{' '}
+                  <span className="text-ms-lightGray font-normal text-xs">
+                    {new Date(audit.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                  </span>
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">

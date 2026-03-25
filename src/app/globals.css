@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Sofia+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sofia+Sans:wght@400;500;600;700;800;900&family=Sofia+Sans+Condensed:wght@400;500;600;700;800&family=STIX+Two+Text:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -15,16 +15,20 @@ html {
 }
 
 body {
-  background-color: #f9fafb;
+  background-color: #f8f9fb;
   color: #1f2937;
 }
 
-/* Custom color utilities for Majority Strategies branding */
+/* Majority Strategies Brand System */
 :root {
   --ms-navy: #00476C;
   --ms-oceanBlue: #217CA1;
   --ms-gray: #5A5B5D;
   --ms-gold: #A38D31;
+  --ms-yellow: #DAC556;
   --ms-lightGray: #A4A7A9;
   --ms-skyBlue: #8BC6E8;
+  --ms-font-primary: 'Sofia Sans', sans-serif;
+  --ms-font-serif: 'STIX Two Text', serif;
+  --ms-font-condensed: 'Sofia Sans Condensed', sans-serif;
 }

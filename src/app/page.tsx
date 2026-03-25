@@ -166,13 +166,13 @@ export default function Home() {
             {/* Hero Section */}
             <div className="text-center space-y-6 pt-8">
               <h1 className="text-4xl md:text-5xl font-bold text-ms-navy leading-tight max-w-3xl mx-auto">
-                Don't just join the conversation.<br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-ms-oceanBlue to-ms-gold">
+                <span className="font-serif italic text-ms-oceanBlue">Don&apos;t just join</span> the conversation.<br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-ms-gold to-ms-yellow font-extrabold tracking-wide">
                   Lead it.
                 </span>
               </h1>
               <p className="text-lg text-ms-gray max-w-2xl mx-auto">
-                Analyze your brand's social media presence, understand your competitors, and discover actionable insights to amplify your voice in the digital space.
+                Analyze your brand&apos;s social media presence, understand your competitors, and discover actionable insights to amplify your voice in the digital space.
               </p>
             </div>
 
