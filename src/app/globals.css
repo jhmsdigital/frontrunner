@@ -1,0 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Sofia+Sans:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-family: 'Sofia Sans', sans-serif;
+}
+
+body {
+  background-color: #f9fafb;
+  color: #1f2937;
+}
+
+/* Custom color utilities for Majority Strategies branding */
+:root {
+  --ms-navy: #00476C;
+  --ms-oceanBlue: #217CA1;
+  --ms-gray: #5A5B5D;
+  --ms-gold: #A38D31;
+  --ms-lightGray: #A4A7A9;
+  --ms-skyBlue: #8BC6E8;
+}
