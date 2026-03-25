@@ -11,7 +11,14 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
   try {
+    const supaKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+    console.log('[audit/list] Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+    console.log('[audit/list] Supabase key starts with:', supaKey.substring(0, 20));
+    console.log('[audit/list] Supabase key length:', supaKey.length);
+
     const rawAudits = await listAudits();
+    console.log('[audit/list] Raw audits count:', rawAudits.length);
+    console.log('[audit/list] Raw audit IDs:', rawAudits.map((a: any) => a.id));
 
     // Transform Supabase data to match AuditHistory component expectations
     const transformedAudits = rawAudits.map((audit: any) => ({

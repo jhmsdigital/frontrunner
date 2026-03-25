@@ -71,7 +71,8 @@ export default function Dashboard({
       const jsPDFModule = await import('jspdf');
       const jsPDF = jsPDFModule.default || jsPDFModule.jsPDF;
       if (!jsPDF) throw new Error('Failed to load jsPDF library');
-      await import('jspdf-autotable');
+      const autoTableModule = await import('jspdf-autotable');
+      const autoTable = autoTableModule.default || autoTableModule.autoTable;
 
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
@@ -200,7 +201,7 @@ export default function Dashboard({
           safeStr(m.source),
         ]);
 
-        (doc as any).autoTable({
+        autoTable(doc, {
           head: [['Metric', 'Value', 'Source']],
           body: metricsTableData,
           startY: yPosition,
@@ -241,7 +242,7 @@ export default function Dashboard({
           safeStr(p.postFrequency),
         ]);
 
-        (doc as any).autoTable({
+        autoTable(doc, {
           head: [['Platform', 'Followers', 'Engagement Rate', 'Post Frequency']],
           body: platformsTableData,
           startY: yPosition,
@@ -296,7 +297,7 @@ export default function Dashboard({
             ? section.items.map(item => [safeStr(item.text), safeStr(item.source)])
             : [['No items identified', '']];
 
-          (doc as any).autoTable({
+          autoTable(doc, {
             head: [[section.label, 'Source']],
             body: sectionBody,
             startY: yPosition,
