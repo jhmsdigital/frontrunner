@@ -25,7 +25,54 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(audit);
+    // Transform Supabase record to match Dashboard component expectations
+    const auditData = (audit as any).audit_data;
+    const platformMetrics = auditData?.platformMetrics || [];
+    const totalFollowers = platformMetrics.reduce((sum: number, m: any) => sum + (m.followerCount || 0), 0);
+    const avgEngagement = platformMetrics.length > 0
+      ? platformMetrics.reduce((sum: number, m: any) => sum + (m.engagementRate || 0), 0) / platformMetrics.length
+      : 0;
+
+    const transformed = {
+      id: (audit as any).id,
+      organizationName: (audit as any).organization_name,
+      industry: (audit as any).industry,
+      executiveSummary: auditData?.executiveSummary || '',
+      metrics: [
+        {
+          label: 'Total Followers',
+          value: totalFollowers.toLocaleString(),
+          source: platformMetrics.some((m: any) => m.dataSource === 'api-verified') ? 'API Verified' : 'Estimated',
+        },
+        {
+          label: 'Avg. Engagement Rate',
+          value: `${avgEngagement.toFixed(2)}%`,
+          source: 'Calculated',
+        },
+        {
+          label: 'Active Platforms',
+          value: platformMetrics.length,
+          source: 'Verified',
+        },
+      ],
+      platforms: platformMetrics.map((m: any) => ({
+        platform: m.platform,
+        followers: m.followerCount || 0,
+        engagementRate: m.engagementRate || 0,
+        url: m.profileUrl || '',
+        postFrequency: `${(m.postsPerWeek || 0).toFixed(1)} posts/week`,
+        audienceGrowth: 'N/A',
+      })),
+      competitors: (auditData?.competitorData || []).map((c: any) => ({
+        name: c.name,
+        followers: c.totalFollowers || 0,
+      })),
+      swot: auditData?.swot || { strengths: [], weaknesses: [], opportunities: [], threats: [] },
+      recommendations: auditData?.recommendations || [],
+      sources: platformMetrics.map((m: any) => `${m.platform}: ${m.dataSource}`),
+    };
+
+    return NextResponse.json(transformed);
   } catch (error) {
     console.error('Error in audit GET:', error);
     return NextResponse.json(
