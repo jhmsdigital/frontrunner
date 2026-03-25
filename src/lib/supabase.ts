@@ -1,30 +1,31 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { AuditResult, SavedAudit } from '@/types';
 
 /**
- * Create a fresh Supabase client for each request.
+ * Supabase REST API helpers using raw fetch.
  * 
- * In serverless environments (Vercel), module-level singletons can cache stale
- * connection state across invocations. Creating a fresh client per request
- * ensures we always get a clean connection.
- * 
- * Prefers non-NEXT_PUBLIC_ env vars (read at RUNTIME) over NEXT_PUBLIC_ vars
- * (inlined at BUILD TIME by Next.js, which can cause stale values).
+ * The Supabase JS client caches/filters results incorrectly in Vercel
+ * serverless environments. Raw fetch to the PostgREST API is reliable.
  */
-function getSupabaseClient(): SupabaseClient {
+
+function getConfig() {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  
-  if (!url || !key) {
-    throw new Error('Missing Supabase environment variables');
-  }
-  
-  return createClient(url, key);
+  if (!url || !key) throw new Error('Missing Supabase environment variables');
+  return { url, key };
+}
+
+function headers(key: string, extra?: Record<string, string>) {
+  return {
+    'apikey': key,
+    'Authorization': `Bearer ${key}`,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation',
+    ...extra,
+  };
 }
 
 /**
- * Retry helper — retries an async function up to `maxRetries` times with exponential backoff.
- * Waits 500ms, 1s, 2s between retries.
+ * Retry helper — retries an async function with exponential backoff.
  */
 async function withRetry<T>(
   fn: () => Promise<T>,
@@ -38,10 +39,8 @@ async function withRetry<T>(
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
       if (attempt < maxRetries) {
-        const delayMs = 500 * Math.pow(2, attempt); // 500ms, 1s, 2s
-        console.warn(
-          `Supabase ${label} attempt ${attempt + 1} failed: ${lastError.message}. Retrying in ${delayMs}ms...`
-        );
+        const delayMs = 500 * Math.pow(2, attempt);
+        console.warn(`Supabase ${label} attempt ${attempt + 1} failed: ${lastError.message}. Retrying in ${delayMs}ms...`);
         await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
     }
@@ -51,12 +50,11 @@ async function withRetry<T>(
 
 /**
  * Save a new audit result to Supabase (with retry)
- * @param result The audit result to save
- * @returns The ID of the saved audit
  */
 export async function saveAudit(result: AuditResult): Promise<string> {
   return withRetry(async () => {
-    const insertPayload = {
+    const { url, key } = getConfig();
+    const payload = {
       organization_name: result.input.orgName,
       industry: result.input.industry,
       audit_data: result,
@@ -64,17 +62,21 @@ export async function saveAudit(result: AuditResult): Promise<string> {
       updated_at: new Date().toISOString(),
     };
 
-    const { data, error, status } = await getSupabaseClient()
-      .from('audits')
-      .insert([insertPayload])
-      .select('id');
+    const res = await fetch(`${url}/rest/v1/audits`, {
+      method: 'POST',
+      headers: headers(key),
+      body: JSON.stringify(payload),
+      cache: 'no-store',
+    });
 
-    if (error) {
-      throw new Error(`Failed to save audit: ${error.message} (code: ${error.code}, status: ${status})`);
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Failed to save audit: ${errText} (status: ${res.status})`);
     }
 
-    if (!data || data.length === 0) {
-      throw new Error(`Failed to save audit: No data returned (status: ${status})`);
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) {
+      throw new Error('Failed to save audit: No data returned');
     }
 
     return data[0].id;
@@ -83,77 +85,85 @@ export async function saveAudit(result: AuditResult): Promise<string> {
 
 /**
  * Retrieve a single audit by ID
- * @param id The audit ID
- * @returns The saved audit or null if not found
  */
 export async function getAudit(id: string): Promise<SavedAudit | null> {
-  const { data, error } = await getSupabaseClient()
-    .from('audits')
-    .select('*')
-    .eq('id', id)
-    .single();
+  const { url, key } = getConfig();
 
-  if (error) {
-    if (error.code === 'PGRST116') {
-      // Row not found
-      return null;
-    }
-    throw new Error(`Failed to fetch audit: ${error.message}`);
+  const res = await fetch(
+    `${url}/rest/v1/audits?id=eq.${encodeURIComponent(id)}&select=*`,
+    { method: 'GET', headers: headers(key), cache: 'no-store' }
+  );
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Failed to fetch audit: ${errText}`);
   }
 
-  return data as SavedAudit;
+  const data = await res.json();
+  if (!Array.isArray(data) || data.length === 0) return null;
+  return data[0] as SavedAudit;
 }
 
 /**
  * List all saved audits
- * @returns Array of saved audits
  */
 export async function listAudits(): Promise<SavedAudit[]> {
-  const { data, error } = await getSupabaseClient()
-    .from('audits')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const { url, key } = getConfig();
 
-  if (error) {
-    throw new Error(`Failed to list audits: ${error.message}`);
+  const res = await fetch(
+    `${url}/rest/v1/audits?select=*&order=created_at.desc`,
+    { method: 'GET', headers: headers(key), cache: 'no-store' }
+  );
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Failed to list audits: ${errText}`);
   }
 
-  return (data as SavedAudit[]) || [];
+  return (await res.json()) as SavedAudit[];
 }
 
 /**
  * Update an existing audit
- * @param id The audit ID
- * @param data Partial audit data to update
  */
 export async function updateAudit(
   id: string,
-  data: Partial<AuditResult>
+  auditData: Partial<AuditResult>
 ): Promise<void> {
-  const { error } = await getSupabaseClient()
-    .from('audits')
-    .update({
-      audit_data: data,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', id);
+  const { url, key } = getConfig();
 
-  if (error) {
-    throw new Error(`Failed to update audit: ${error.message}`);
+  const res = await fetch(
+    `${url}/rest/v1/audits?id=eq.${encodeURIComponent(id)}`,
+    {
+      method: 'PATCH',
+      headers: headers(key),
+      body: JSON.stringify({
+        audit_data: auditData,
+        updated_at: new Date().toISOString(),
+      }),
+      cache: 'no-store',
+    }
+  );
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Failed to update audit: ${errText}`);
   }
 }
 
 /**
  * Delete an audit by ID
- * @param id The audit ID
  */
 export async function deleteAudit(id: string): Promise<void> {
-  const { error } = await getSupabaseClient()
-    .from('audits')
-    .delete()
-    .eq('id', id);
+  const { url, key } = getConfig();
 
-  if (error) {
-    throw new Error(`Failed to delete audit: ${error.message}`);
+  const res = await fetch(
+    `${url}/rest/v1/audits?id=eq.${encodeURIComponent(id)}`,
+    { method: 'DELETE', headers: headers(key), cache: 'no-store' }
+  );
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Failed to delete audit: ${errText}`);
   }
 }
