@@ -15,33 +15,62 @@ export const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
 export const supabaseServer = createClient(supabaseUrl, supabaseAnonKey);
 
 /**
- * Save a new audit result to Supabase
+ * Retry helper — retries an async function up to `maxRetries` times with exponential backoff.
+ * Waits 500ms, 1s, 2s between retries.
+ */
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  label: string = 'operation'
+): Promise<T> {
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      if (attempt < maxRetries) {
+        const delayMs = 500 * Math.pow(2, attempt); // 500ms, 1s, 2s
+        console.warn(
+          `Supabase ${label} attempt ${attempt + 1} failed: ${lastError.message}. Retrying in ${delayMs}ms...`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+  }
+  throw lastError!;
+}
+
+/**
+ * Save a new audit result to Supabase (with retry)
  * @param result The audit result to save
  * @returns The ID of the saved audit
  */
 export async function saveAudit(result: AuditResult): Promise<string> {
-  const { data, error } = await supabaseClient
-    .from('audits')
-    .insert([
-      {
-        organization_name: result.input.orgName,
-        industry: result.input.industry,
-        audit_data: result,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-    ])
-    .select('id');
+  return withRetry(async () => {
+    const { data, error } = await supabaseClient
+      .from('audits')
+      .insert([
+        {
+          organization_name: result.input.orgName,
+          industry: result.input.industry,
+          audit_data: result,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ])
+      .select('id');
 
-  if (error) {
-    throw new Error(`Failed to save audit: ${error.message}`);
-  }
+    if (error) {
+      throw new Error(`Failed to save audit: ${error.message}`);
+    }
 
-  if (!data || data.length === 0) {
-    throw new Error('Failed to save audit: No data returned');
-  }
+    if (!data || data.length === 0) {
+      throw new Error('Failed to save audit: No data returned');
+    }
 
-  return data[0].id;
+    return data[0].id;
+  }, 3, 'saveAudit');
 }
 
 /**

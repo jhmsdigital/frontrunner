@@ -56,6 +56,7 @@ interface AuditResult {
   };
   recommendations: string[];
   sources: string[];
+  saveWarning?: string;
 }
 
 export default function Home() {
@@ -65,6 +66,7 @@ export default function Home() {
   const [selectedAuditId, setSelectedAuditId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'new-audit' | 'generated-audits'>('new-audit');
   const [editingInput, setEditingInput] = useState<OriginalInput | null>(null);
+  const [unsaved, setUnsaved] = useState(false);
 
   const handleFormSubmit = async (formData: any) => {
     setPageState('loading');
@@ -88,7 +90,9 @@ export default function Home() {
 
       const result = await response.json();
       if (result.saveWarning) {
-        alert(`Warning: ${result.saveWarning}\n\nYour audit results are shown below, but they may not appear in the Generated Audits tab. Try generating again.`);
+        setUnsaved(true);
+      } else {
+        setUnsaved(false);
       }
       setAuditResult(result);
       setPageState('results');
@@ -265,6 +269,15 @@ export default function Home() {
   // Results View
   if (pageState === 'results' && auditResult) {
     return (
+      <div className="space-y-4">
+        {unsaved && (
+          <div className="rounded-lg border-2 border-amber-300 bg-amber-50 px-5 py-4 flex items-center justify-between gap-4">
+            <div>
+              <p className="font-semibold text-amber-800 text-sm">This audit was not saved to your history</p>
+              <p className="text-xs text-amber-700 mt-1">It won&apos;t appear in Generated Audits. Use &quot;Edit &amp; Re-generate&quot; to try again.</p>
+            </div>
+          </div>
+        )}
       <Dashboard
         organizationName={auditResult.organizationName}
         industry={auditResult.industry}
@@ -278,6 +291,7 @@ export default function Home() {
         onNewAudit={handleNewAudit}
         onRegenerate={auditResult.originalInput ? handleRegenerate : undefined}
       />
+      </div>
     );
   }
 
