@@ -1,9 +1,7 @@
 'use client';
 
-import React, { useRef } from 'react';
-import { FileDown, Plus, Save } from 'lucide-react';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import React, { useRef, useState } from 'react';
+import { FileDown, Plus, Save, Loader2 } from 'lucide-react';
 import SwotAnalysis from './SwotAnalysis';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -60,9 +58,17 @@ export default function Dashboard({
   onEditChange,
 }: DashboardProps) {
   const dashboardRef = useRef<HTMLDivElement>(null);
+  const [pdfExporting, setPdfExporting] = useState(false);
 
-  const handlePdfExport = () => {
+  const handlePdfExport = async () => {
     if (typeof window === 'undefined') return;
+
+    setPdfExporting(true);
+    try {
+    // Dynamic imports to avoid SSR/bundling issues
+    const jsPDFModule = await import('jspdf');
+    const jsPDF = jsPDFModule.default;
+    await import('jspdf-autotable');
 
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -270,6 +276,12 @@ export default function Dashboard({
 
     // Download
     doc.save(`${organizationName}_Frontrunner_Audit.pdf`);
+    } catch (error) {
+      console.error('PDF export failed:', error);
+      alert('PDF export failed. Please try again.');
+    } finally {
+      setPdfExporting(false);
+    }
   };
 
   const comparisonData = [
@@ -304,11 +316,12 @@ export default function Dashboard({
           <div className="flex gap-3 flex-wrap">
             <button
               onClick={handlePdfExport}
-              className="flex items-center gap-2 rounded-lg border-2 border-ms-gold bg-white px-4 py-2 font-semibold text-ms-gold hover:bg-ms-gold hover:text-white transition-colors"
+              disabled={pdfExporting}
+              className="flex items-center gap-2 rounded-lg border-2 border-ms-gold bg-white px-4 py-2 font-semibold text-ms-gold hover:bg-ms-gold hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <FileDown className="h-5 w-5" />
-              <span className="hidden sm:inline">Export PDF</span>
-              <span className="sm:hidden">Export</span>
+              {pdfExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-5 w-5" />}
+              <span className="hidden sm:inline">{pdfExporting ? 'Exporting...' : 'Export PDF'}</span>
+              <span className="sm:hidden">{pdfExporting ? '...' : 'Export'}</span>
             </button>
             {onNewAudit && (
               <button

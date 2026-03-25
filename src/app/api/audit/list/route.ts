@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { listAudits } from '@/lib/supabase';
 
+// Force dynamic rendering - this route reads from Supabase at runtime
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/audit/list
  * Returns all saved audits for the history view
