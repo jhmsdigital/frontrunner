@@ -22,7 +22,20 @@ export async function GET() {
       platformCount: audit.audit_data?.input?.platforms?.length || 0,
     }));
 
-    return NextResponse.json({ audits: transformedAudits });
+    // TEMPORARY DEBUG — remove after verifying env var fix
+    const keySource = process.env.SUPABASE_ANON_KEY ? 'SUPABASE_ANON_KEY' : 'NEXT_PUBLIC_SUPABASE_ANON_KEY';
+    const activeKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+    
+    return NextResponse.json({
+      audits: transformedAudits,
+      _debug: {
+        keySource,
+        keyLength: activeKey.length,
+        keyPrefix: activeKey.substring(0, 20),
+        keySuffix: activeKey.substring(activeKey.length - 10),
+        totalFromDb: rawAudits.length,
+      },
+    });
   } catch (error) {
     console.error('Error in audit list GET:', error);
     return NextResponse.json(
