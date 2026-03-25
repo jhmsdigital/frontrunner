@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { listAudits } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 // Force dynamic rendering - this route reads from Supabase at runtime
 export const dynamic = 'force-dynamic';
@@ -11,10 +11,27 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
   try {
-    const rawAudits = await listAudits();
+    // Create a FRESH client directly to rule out module-level caching issues
+    const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    if (!url || !key) {
+      return NextResponse.json({ error: 'Missing Supabase env vars' }, { status: 500 });
+    }
+    
+    const freshClient = createClient(url, key);
+
+    const { data: rawAudits, error, count } = await freshClient
+      .from('audits')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      return NextResponse.json({ error: error.message, code: error.code }, { status: 500 });
+    }
 
     // Transform Supabase data to match AuditHistory component expectations
-    const transformedAudits = rawAudits.map((audit: any) => ({
+    const transformedAudits = (rawAudits || []).map((audit: any) => ({
       id: audit.id,
       organizationName: audit.organization_name,
       industry: audit.industry,
@@ -22,18 +39,15 @@ export async function GET() {
       platformCount: audit.audit_data?.input?.platforms?.length || 0,
     }));
 
-    // TEMPORARY DEBUG — remove after verifying env var fix
-    const keySource = process.env.SUPABASE_ANON_KEY ? 'SUPABASE_ANON_KEY' : 'NEXT_PUBLIC_SUPABASE_ANON_KEY';
-    const activeKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-    
+    // TEMPORARY DEBUG — remove after fixing
     return NextResponse.json({
       audits: transformedAudits,
       _debug: {
-        keySource,
-        keyLength: activeKey.length,
-        keyPrefix: activeKey.substring(0, 20),
-        keySuffix: activeKey.substring(activeKey.length - 10),
-        totalFromDb: rawAudits.length,
+        keyLength: key.length,
+        keySuffix: key.substring(key.length - 10),
+        urlUsed: url,
+        totalRows: rawAudits?.length || 0,
+        exactCount: count,
       },
     });
   } catch (error) {
