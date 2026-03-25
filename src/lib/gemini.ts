@@ -88,9 +88,35 @@ Be as accurate as possible with current follower counts. If a competitor doesn't
 }
 
 /**
+ * Extract the outermost JSON object from a string, handling nested braces correctly.
+ */
+function extractJsonObject(text: string): string | null {
+  const startIdx = text.indexOf('{');
+  if (startIdx === -1) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+
+  for (let i = startIdx; i < text.length; i++) {
+    const ch = text[i];
+    if (escape) { escape = false; continue; }
+    if (ch === '\\') { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === '{') depth++;
+    if (ch === '}') {
+      depth--;
+      if (depth === 0) return text.substring(startIdx, i + 1);
+    }
+  }
+  return null;
+}
+
+/**
  * Generate complete analysis from verified + search-derived data
  * Acts as a senior digital strategist at Majority Strategies
- * Frames weaknesses as opportunities for MS to sell services
+ * Uses Patrick's SWOT logic framework for structured, actionable analysis
  */
 export async function generateAnalysis(
   organizationName: string,
@@ -123,71 +149,83 @@ export async function generateAnalysis(
       ? `Campaign Goals: ${campaignGoals}`
       : 'No specific campaign goals provided.';
 
-    const systemPrompt = `You are a senior digital strategist at Majority Strategies, a leading political marketing agency.
+    const analysisPrompt = `You are a senior digital strategist at Majority Strategies, a leading political marketing agency.
 Your expertise is in social media strategy, audience engagement, and digital campaign execution.
-Your role is to analyze social media presence and identify strategic opportunities.
 Frame all weaknesses as SALES OPPORTUNITIES where Majority Strategies can step in to help.
-Be specific with numbers and data points. Focus on actionable insights that could lead to service engagements.`;
+Be specific with numbers and data points. Focus on actionable insights.
 
-    const analysisPrompt = `Analyze the following social media audit data for ${organizationName} in the ${industry} industry:
+Analyze the following social media audit data for ${organizationName} in the ${industry} industry:
 
 CURRENT SOCIAL MEDIA METRICS:
-${metricsContext}
+${metricsContext || 'No platform metrics available.'}
 
 COMPETITOR BENCHMARKS:
-${competitorContext}
+${competitorContext || 'No competitor data available.'}
 
 ${campaignGoalsContext}
 
-Based on this data, provide:
+Provide your analysis in EXACTLY this format (do not deviate):
 
-1. EXECUTIVE SUMMARY (exactly 5 sentences following this structure):
-   - Sentence 1: Current presence with audience size across platforms
-   - Sentence 2: Key observation about their content strategy
-   - Sentence 3: How they compare to competitors
-   - Sentence 4: A specific gap or opportunity identified
-   - Sentence 5: Clear call to action for Majority Strategies services
+EXECUTIVE_SUMMARY:
+[Write exactly 5 sentences:
+1. Current presence with audience size across platforms
+2. Key observation about their content strategy
+3. How they compare to competitors
+4. A specific gap or opportunity identified
+5. Clear call to action for Majority Strategies services]
 
-2. SWOT ANALYSIS:
-   Return as JSON object with this structure:
-   {
-     "strengths": [
-       {"text": "description with numbers", "dataSource": "api-verified|calculated|benchmark|observation"},
-       ...
-     ],
-     "weaknesses": [
-       {"text": "description with numbers", "dataSource": "api-verified|calculated|benchmark|observation"},
-       ...
-     ],
-     "opportunities": [
-       {"text": "description with numbers", "dataSource": "api-verified|calculated|benchmark|observation"},
-       ...
-     ],
-     "threats": [
-       {"text": "description with numbers", "dataSource": "api-verified|calculated|benchmark|observation"},
-       ...
-     ]
-   }
+SWOT_JSON:
+[Return a single JSON object — no markdown code fences, no backticks. MUST contain 3-5 items per category.]
 
-3. RECOMMENDATIONS (3-5 actionable items):
-   - Each should be specific and measurable
-   - Focus on areas where Majority Strategies can provide value
-   - Include realistic timelines or metrics
+IMPORTANT SWOT RULES (from Majority Strategies playbook):
 
-Format your response as:
-EXECUTIVE_SUMMARY: [5 sentences here]
-SWOT_JSON: [JSON object here]
-RECOMMENDATIONS: [numbered list here]`;
+STRENGTHS — Look for these indicators:
+- High follower count (10,000+ per platform = established audience)
+- Consistent engagement (50+ likes, several comments/shares per post)
+- Consistent posting frequency (regular posts, consistent times)
+- High video views (1,000+ views for 10k+ follower accounts)
+- Impressions exceeding followers (content reaching beyond existing audience)
+DO NOT list as strength: high followers with low engagement, presence on platforms with low followers.
+Use professional language like: "${organizationName} has X followers across platforms, ranking towards the higher end of the competition."
+
+WEAKNESSES — Look for these indicators:
+- Platform inactivity (missing major platforms where competitors are active)
+- Single content format (only links, only static graphics)
+- Generic/excessive hashtag usage
+- High posting frequency but low engagement (content not resonating)
+- High followers but low engagement (potentially inauthentic followers)
+Frame constructively. NEVER claim trends without comparing two time periods.
+Use language like: "${organizationName} doesn't utilize a diverse range of content, frequently posting links that hurt reach."
+
+OPPORTUNITIES — Connect to MS services:
+- Full-service social media management
+- Custom content calendars (data-driven posting schedules)
+- Social media account creation (professional setup on new platforms)
+- Short-form video production (Reels, TikTok, YouTube Shorts)
+- Graphic design for social media (custom visual assets)
+Pattern: inactive = needs management; low engagement = needs content help; few followers = needs growth strategy.
+Use aspirational language about installing professional management layers and data-driven content roadmaps.
+
+THREATS — Focus on:
+- Not maximizing video content (missing algorithm-favored format)
+- Failing to participate in trends (appearing out of touch)
+- Outdated strategies (hashtag stuffing, follow-for-follow)
+- AI-generated text overuse (appears inauthentic)
+- Prioritizing views over engagement (shares/comments/saves signal value, not impressions)
+DO NOT mention: fake followers, SEO, shadowbans.
+Create urgency without fear-mongering.
+
+The JSON structure must be:
+{"strengths":[{"text":"specific finding with numbers","dataSource":"api-verified"}],"weaknesses":[{"text":"specific finding","dataSource":"observation"}],"opportunities":[{"text":"MS service opportunity","dataSource":"benchmark"}],"threats":[{"text":"industry threat","dataSource":"observation"}]}
+
+RECOMMENDATIONS:
+[3-5 numbered items. Each specific, measurable, with timelines. Focus on areas where Majority Strategies provides value.]`;
 
     const result = await model.generateContent({
       contents: [
         {
           role: 'user',
-          parts: [
-            {
-              text: systemPrompt + '\n\n' + analysisPrompt,
-            },
-          ],
+          parts: [{ text: analysisPrompt }],
         },
       ],
       generationConfig: {
@@ -200,7 +238,9 @@ RECOMMENDATIONS: [numbered list here]`;
     const responseText =
       result.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
-    // Parse response sections
+    console.log('Gemini response length:', responseText.length);
+
+    // Parse EXECUTIVE SUMMARY
     const executiveSummaryMatch = responseText.match(
       /EXECUTIVE_SUMMARY:\s*([\s\S]*?)(?=SWOT_JSON:|$)/
     );
@@ -208,9 +248,7 @@ RECOMMENDATIONS: [numbered list here]`;
       ? executiveSummaryMatch[1].trim()
       : '';
 
-    const swotJsonMatch = responseText.match(
-      /SWOT_JSON:\s*(\{[\s\S]*?\})(?=RECOMMENDATIONS:|$)/
-    );
+    // Parse SWOT JSON — use robust brace-matching parser
     let swot: SwotAnalysis = {
       strengths: [],
       weaknesses: [],
@@ -218,32 +256,46 @@ RECOMMENDATIONS: [numbered list here]`;
       threats: [],
     };
 
-    if (swotJsonMatch) {
-      try {
-        const swotData = JSON.parse(swotJsonMatch[1]);
-        swot = {
-          strengths: (swotData.strengths || []).map((item: any) => ({
-            text: item.text,
-            source: item.dataSource || item.source || 'OBSERVED',
-          })),
-          weaknesses: (swotData.weaknesses || []).map((item: any) => ({
-            text: item.text,
-            source: item.dataSource || item.source || 'OBSERVED',
-          })),
-          opportunities: (swotData.opportunities || []).map((item: any) => ({
-            text: item.text,
-            source: item.dataSource || item.source || 'OBSERVED',
-          })),
-          threats: (swotData.threats || []).map((item: any) => ({
-            text: item.text,
-            source: item.dataSource || item.source || 'OBSERVED',
-          })),
-        };
-      } catch (e) {
-        console.error('Error parsing SWOT JSON:', e);
+    const swotSection = responseText.match(/SWOT_JSON:\s*([\s\S]*?)(?=RECOMMENDATIONS:|$)/);
+    if (swotSection) {
+      const rawSwotText = swotSection[1]
+        .replace(/```json\s*/g, '')
+        .replace(/```\s*/g, '')
+        .trim();
+
+      const jsonStr = extractJsonObject(rawSwotText);
+      if (jsonStr) {
+        try {
+          const swotData = JSON.parse(jsonStr);
+          const mapItems = (items: any[]) =>
+            (items || []).map((item: any) => ({
+              text: typeof item === 'string' ? item : (item.text || ''),
+              source: item.dataSource || item.source || 'OBSERVED',
+            })).filter((item: any) => item.text.length > 0);
+
+          swot = {
+            strengths: mapItems(swotData.strengths),
+            weaknesses: mapItems(swotData.weaknesses),
+            opportunities: mapItems(swotData.opportunities),
+            threats: mapItems(swotData.threats),
+          };
+          console.log('SWOT parsed successfully:', {
+            strengths: swot.strengths.length,
+            weaknesses: swot.weaknesses.length,
+            opportunities: swot.opportunities.length,
+            threats: swot.threats.length,
+          });
+        } catch (e) {
+          console.error('Error parsing SWOT JSON:', e, 'Raw JSON string:', jsonStr.substring(0, 200));
+        }
+      } else {
+        console.error('Could not extract JSON object from SWOT section. Raw text:', rawSwotText.substring(0, 300));
       }
+    } else {
+      console.error('No SWOT_JSON section found in response. Full response:', responseText.substring(0, 500));
     }
 
+    // Parse RECOMMENDATIONS
     const recommendationsMatch = responseText.match(
       /RECOMMENDATIONS:\s*([\s\S]*?)$/
     );
