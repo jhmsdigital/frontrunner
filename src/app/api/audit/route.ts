@@ -75,11 +75,13 @@ export async function POST(request: NextRequest) {
 
     // Step 5: Save to Supabase
     let auditId: string | undefined;
+    let saveError: string | null = null;
     try {
       auditId = await saveAudit(auditResult as any);
     } catch (e) {
       console.error('Failed to save audit to Supabase:', e);
-      // Continue without saving - don't fail the whole request
+      saveError = e instanceof Error ? e.message : 'Failed to save audit';
+      // Continue without saving - show warning to user but don't fail the whole request
     }
 
     // Step 6: Return response in the shape the frontend expects
@@ -125,6 +127,7 @@ export async function POST(request: NextRequest) {
       swot,
       recommendations,
       sources: platformMetrics.map(m => `${m.platform}: ${m.dataSource}`),
+      ...(saveError ? { saveWarning: `Audit generated but not saved: ${saveError}` } : {}),
     }, { status: 201 });
   } catch (error) {
     console.error('Error in audit POST:', error);

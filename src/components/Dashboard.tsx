@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { FileDown, Plus, Save, Loader2 } from 'lucide-react';
+import { FileDown, Plus, Save, Loader2, RefreshCw } from 'lucide-react';
 import SwotAnalysis from './SwotAnalysis';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -37,6 +37,7 @@ interface DashboardProps {
   recommendations: string[];
   sources?: string[];
   onNewAudit?: () => void;
+  onRegenerate?: () => void;
   onSave?: () => void;
   isEditing?: boolean;
   onEditChange?: (field: string, value: any) => void;
@@ -53,6 +54,7 @@ export default function Dashboard({
   recommendations,
   sources = [],
   onNewAudit,
+  onRegenerate,
   onSave,
   isEditing = false,
   onEditChange,
@@ -323,6 +325,16 @@ export default function Dashboard({
               <span className="hidden sm:inline">{pdfExporting ? 'Exporting...' : 'Export PDF'}</span>
               <span className="sm:hidden">{pdfExporting ? '...' : 'Export'}</span>
             </button>
+            {onRegenerate && (
+              <button
+                onClick={onRegenerate}
+                className="flex items-center gap-2 rounded-lg border-2 border-ms-navy bg-white px-4 py-2 font-semibold text-ms-navy hover:bg-ms-navy hover:text-white transition-colors"
+              >
+                <RefreshCw className="h-5 w-5" />
+                <span className="hidden sm:inline">Edit &amp; Re-generate</span>
+                <span className="sm:hidden">Re-gen</span>
+              </button>
+            )}
             {onNewAudit && (
               <button
                 onClick={onNewAudit}

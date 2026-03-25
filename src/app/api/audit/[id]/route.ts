@@ -38,6 +38,8 @@ export async function GET(
       organizationName: (audit as any).organization_name,
       industry: (audit as any).industry,
       executiveSummary: auditData?.executiveSummary || '',
+      // Include original input data for re-generate feature
+      originalInput: auditData?.input || null,
       metrics: [
         {
           label: 'Total Followers',

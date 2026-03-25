@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Loader2, Trash2, Eye } from 'lucide-react';
+import { Loader2, Trash2, Eye, RefreshCw } from 'lucide-react';
 
 interface AuditRecord {
   id: string;

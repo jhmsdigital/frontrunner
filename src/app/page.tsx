@@ -16,11 +16,21 @@ const progressMessages = [
   'Compiling recommendations...',
 ];
 
+interface OriginalInput {
+  orgName: string;
+  website: string;
+  industry: string;
+  campaignGoals?: string;
+  platforms: Array<{ name: string; url: string }>;
+  competitors: string[];
+}
+
 interface AuditResult {
   id: string;
   organizationName: string;
   industry: string;
   executiveSummary: string;
+  originalInput?: OriginalInput | null;
   metrics: Array<{
     label: string;
     value: string | number;
@@ -54,6 +64,7 @@ export default function Home() {
   const [auditResult, setAuditResult] = useState<AuditResult | null>(null);
   const [selectedAuditId, setSelectedAuditId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'new-audit' | 'generated-audits'>('new-audit');
+  const [editingInput, setEditingInput] = useState<OriginalInput | null>(null);
 
   const handleFormSubmit = async (formData: any) => {
     setPageState('loading');
@@ -76,6 +87,9 @@ export default function Home() {
       if (!response.ok) throw new Error('Analysis failed');
 
       const result = await response.json();
+      if (result.saveWarning) {
+        alert(`Warning: ${result.saveWarning}\n\nYour audit results are shown below, but they may not appear in the Generated Audits tab. Try generating again.`);
+      }
       setAuditResult(result);
       setPageState('results');
     } catch (error) {
@@ -103,6 +117,16 @@ export default function Home() {
     setPageState('home');
     setAuditResult(null);
     setSelectedAuditId(null);
+    setEditingInput(null);
+    setActiveTab('new-audit');
+  };
+
+  const handleRegenerate = () => {
+    // Pre-fill the form with the current audit's original input data
+    const inputData = auditResult?.originalInput || null;
+    setEditingInput(inputData);
+    setPageState('home');
+    setAuditResult(null);
     setActiveTab('new-audit');
   };
 
@@ -154,7 +178,7 @@ export default function Home() {
 
             {/* Input Form */}
             <div className="max-w-4xl mx-auto w-full">
-              <InputForm onSubmit={handleFormSubmit} />
+              <InputForm onSubmit={handleFormSubmit} initialData={editingInput} />
             </div>
 
             {/* Feature Cards */}
@@ -252,6 +276,7 @@ export default function Home() {
         recommendations={auditResult.recommendations}
         sources={auditResult.sources}
         onNewAudit={handleNewAudit}
+        onRegenerate={auditResult.originalInput ? handleRegenerate : undefined}
       />
     );
   }

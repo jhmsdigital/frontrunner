@@ -37,22 +37,38 @@ const INDUSTRIES = [
 
 const PLATFORMS = ['Facebook', 'Twitter/X', 'Instagram', 'TikTok', 'LinkedIn', 'YouTube'];
 
+interface InitialFormData {
+  orgName: string;
+  website: string;
+  industry: string;
+  campaignGoals?: string;
+  platforms: Array<{ name: string; url: string }>;
+  competitors: string[];
+}
+
 interface InputFormProps {
   onSubmit: (data: any) => void;
   isLoading?: boolean;
+  initialData?: InitialFormData | null;
 }
 
-export default function InputForm({ onSubmit, isLoading = false }: InputFormProps) {
+export default function InputForm({ onSubmit, isLoading = false, initialData }: InputFormProps) {
   const [formData, setFormData] = useState({
-    orgName: '',
-    website: '',
-    industry: '',
-    campaignGoals: '',
+    orgName: initialData?.orgName || '',
+    website: initialData?.website || '',
+    industry: initialData?.industry || '',
+    campaignGoals: initialData?.campaignGoals || '',
   });
 
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
-  const [platformUrls, setPlatformUrls] = useState<PlatformInput[]>([]);
-  const [competitors, setCompetitors] = useState<Competitor[]>([]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(
+    initialData?.platforms?.map(p => p.name) || []
+  );
+  const [platformUrls, setPlatformUrls] = useState<PlatformInput[]>(
+    initialData?.platforms?.map(p => ({ platform: p.name, url: p.url })) || []
+  );
+  const [competitors, setCompetitors] = useState<Competitor[]>(
+    initialData?.competitors?.map((name, i) => ({ id: `init-${i}`, name })) || []
+  );
   const [newCompetitor, setNewCompetitor] = useState('');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
