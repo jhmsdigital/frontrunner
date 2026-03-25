@@ -1,20 +1,26 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { AuditResult, SavedAudit } from '@/types';
 
-// For server-side API routes, prefer non-NEXT_PUBLIC_ env vars (read at RUNTIME)
-// NEXT_PUBLIC_ vars get inlined at BUILD TIME by Next.js, which can cause stale values
-const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
+/**
+ * Create a fresh Supabase client for each request.
+ * 
+ * In serverless environments (Vercel), module-level singletons can cache stale
+ * connection state across invocations. Creating a fresh client per request
+ * ensures we always get a clean connection.
+ * 
+ * Prefers non-NEXT_PUBLIC_ env vars (read at RUNTIME) over NEXT_PUBLIC_ vars
+ * (inlined at BUILD TIME by Next.js, which can cause stale values).
+ */
+function getSupabaseClient(): SupabaseClient {
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  if (!url || !key) {
+    throw new Error('Missing Supabase environment variables');
+  }
+  
+  return createClient(url, key);
 }
-
-// Supabase client used by both client-side and server-side code
-export const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
-
-// Server-side client (for API routes) — identical for now
-export const supabaseServer = createClient(supabaseUrl, supabaseAnonKey);
 
 /**
  * Retry helper — retries an async function up to `maxRetries` times with exponential backoff.
@@ -58,7 +64,7 @@ export async function saveAudit(result: AuditResult): Promise<string> {
       updated_at: new Date().toISOString(),
     };
 
-    const { data, error, status } = await supabaseClient
+    const { data, error, status } = await getSupabaseClient()
       .from('audits')
       .insert([insertPayload])
       .select('id');
@@ -81,7 +87,7 @@ export async function saveAudit(result: AuditResult): Promise<string> {
  * @returns The saved audit or null if not found
  */
 export async function getAudit(id: string): Promise<SavedAudit | null> {
-  const { data, error } = await supabaseClient
+  const { data, error } = await getSupabaseClient()
     .from('audits')
     .select('*')
     .eq('id', id)
@@ -103,7 +109,7 @@ export async function getAudit(id: string): Promise<SavedAudit | null> {
  * @returns Array of saved audits
  */
 export async function listAudits(): Promise<SavedAudit[]> {
-  const { data, error } = await supabaseClient
+  const { data, error } = await getSupabaseClient()
     .from('audits')
     .select('*')
     .order('created_at', { ascending: false });
@@ -124,7 +130,7 @@ export async function updateAudit(
   id: string,
   data: Partial<AuditResult>
 ): Promise<void> {
-  const { error } = await supabaseClient
+  const { error } = await getSupabaseClient()
     .from('audits')
     .update({
       audit_data: data,
@@ -142,7 +148,7 @@ export async function updateAudit(
  * @param id The audit ID
  */
 export async function deleteAudit(id: string): Promise<void> {
-  const { error } = await supabaseClient
+  const { error } = await getSupabaseClient()
     .from('audits')
     .delete()
     .eq('id', id);
