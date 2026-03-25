@@ -95,6 +95,7 @@ export async function POST(request: NextRequest) {
       organizationName: formData.orgName,
       industry: formData.industry,
       executiveSummary,
+      originalInput: formData,
       metrics: [
         {
           label: 'Total Followers',

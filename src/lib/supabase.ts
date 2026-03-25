@@ -47,28 +47,38 @@ async function withRetry<T>(
  * @returns The ID of the saved audit
  */
 export async function saveAudit(result: AuditResult): Promise<string> {
+  console.log('[saveAudit] Starting save for org:', result.input?.orgName);
+  console.log('[saveAudit] Supabase URL configured:', supabaseUrl ? supabaseUrl.substring(0, 30) + '...' : 'MISSING');
+
   return withRetry(async () => {
-    const { data, error } = await supabaseClient
+    const insertPayload = {
+      organization_name: result.input.orgName,
+      industry: result.input.industry,
+      audit_data: result,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    console.log('[saveAudit] Inserting audit, payload org:', insertPayload.organization_name);
+
+    const { data, error, status, statusText } = await supabaseClient
       .from('audits')
-      .insert([
-        {
-          organization_name: result.input.orgName,
-          industry: result.input.industry,
-          audit_data: result,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ])
+      .insert([insertPayload])
       .select('id');
 
+    console.log('[saveAudit] Supabase response - status:', status, statusText);
+    console.log('[saveAudit] Supabase response - error:', error ? JSON.stringify(error) : 'none');
+    console.log('[saveAudit] Supabase response - data:', data ? JSON.stringify(data) : 'null');
+
     if (error) {
-      throw new Error(`Failed to save audit: ${error.message}`);
+      throw new Error(`Failed to save audit: ${error.message} (code: ${error.code}, status: ${status})`);
     }
 
     if (!data || data.length === 0) {
-      throw new Error('Failed to save audit: No data returned');
+      throw new Error(`Failed to save audit: No data returned (status: ${status})`);
     }
 
+    console.log('[saveAudit] Successfully saved audit with ID:', data[0].id);
     return data[0].id;
   }, 3, 'saveAudit');
 }

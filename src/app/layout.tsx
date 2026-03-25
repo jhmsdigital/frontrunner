@@ -22,7 +22,7 @@ export default function RootLayout({
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between py-3">
               {/* MS Logo + Frontrunner */}
-              <div className="flex items-center gap-5">
+              <a href="/" className="flex items-center gap-5 hover:opacity-90 transition-opacity">
                 <img
                   src="/MS_logo_white.png"
                   alt="Majority Strategies"
@@ -37,7 +37,7 @@ export default function RootLayout({
                     Social Media Audit Tool
                   </div>
                 </div>
-              </div>
+              </a>
 
               {/* Right side */}
               <div className="hidden items-center space-x-4 md:flex">
