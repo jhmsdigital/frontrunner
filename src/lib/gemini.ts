@@ -6,7 +6,7 @@ import type {
 } from '@/types';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+const model = genAI.getGenerativeModel({ model: 'gemini-3.1-flash-lite-preview' });
 
 /**
  * Fetch competitor data via Gemini search grounding
